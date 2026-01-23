@@ -1,0 +1,388 @@
+openapi: 3.1.0
+info:
+  title: Todo AI Chatbot API
+  description: REST API for conversational Todo management with AI agent and MCP tools
+  version: 1.0.0
+  contact:
+    name: TodoFlow Support
+    email: support@todoflow.local
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.todoflow.local/api/v1
+    description: Production server
+
+tags:
+  - name: Chat
+    description: Conversational AI chatbot endpoints
+  - name: Todos
+    description: Todo CRUD operations (via AI agent)
+  - name: Conversations
+    description: Conversation history management
+
+paths:
+  /chat:
+    post:
+      tags:
+        - Chat
+      summary: Send message to AI chatbot
+      description: |
+        Send a natural language message to the AI agent. The agent will:
+        1. Load conversation history from database
+        2. Process the message using OpenAI Agents SDK
+        3. Invoke MCP tools for any Todo operations
+        4. Generate a conversational response
+        5. Persist all messages before returning
+      operationId: sendChatMessage
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Successful chat response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /conversations:
+    get:
+      tags:
+        - Conversations
+      summary: List user's conversations
+      description: Get all conversations for the authenticated user, ordered by most recent.
+      operationId: listConversations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of conversations to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of conversations to skip
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationListResponse'
+        '401':
+          description: Unauthorized
+
+  /conversations/{conversation_id}:
+    get:
+      tags:
+        - Conversations
+      summary: Get conversation with messages
+      description: Retrieve a specific conversation and its message history.
+      operationId: getConversation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Conversation UUID
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+          description: Maximum messages to return
+      responses:
+        '200':
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDetailResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Conversation belongs to another user
+        '404':
+          description: Conversation not found
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Request/Response Schemas
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: Natural language message from user
+        conversation_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional conversation ID to continue existing conversation
+
+    ChatResponse:
+      type: object
+      required:
+        - response
+        - conversation_id
+        - message_id
+      properties:
+        response:
+          type: string
+          description: AI-generated response text
+        conversation_id:
+          type: string
+          format: uuid
+          description: Conversation identifier
+        message_id:
+          type: string
+          format: uuid
+          description: Message identifier for this response
+
+    ConversationListItem:
+      type: object
+      required:
+        - id
+        - title
+        - message_count
+        - last_message_at
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 255
+          nullable: true
+        message_count:
+          type: integer
+        last_message_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    ConversationListResponse:
+      type: object
+      required:
+        - conversations
+        - total
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationListItem'
+        total:
+          type: integer
+          description: Total number of conversations for user
+
+    Message:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum:
+            - user
+            - assistant
+        content:
+          type: string
+        tool_calls:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              tool:
+                type: string
+              arguments:
+                type: object
+        created_at:
+          type: string
+          format: date-time
+
+    ConversationDetailResponse:
+      type: object
+      required:
+        - id
+        - title
+        - messages
+        - created_at
+        - last_message_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 255
+          nullable: true
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        created_at:
+          type: string
+          format: date-time
+        last_message_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          nullable: true
+          description: Additional error details
+
+  # Tool Definitions for MCP
+  tools:
+    todo_add:
+      name: todo_add
+      description: Create a new todo task
+      inputSchema:
+        type: object
+        properties:
+          title:
+            type: string
+            minLength: 1
+            maxLength: 500
+            description: Task title
+          description:
+            type: string
+            maxLength: 2000
+            description: Optional task description
+        required:
+          - title
+
+    todo_list:
+      name: todo_list
+      description: List user's todos with optional filtering
+      inputSchema:
+        type: object
+        properties:
+          include_completed:
+            type: boolean
+            default: false
+            description: Include completed todos in results
+          limit:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+            description: Maximum todos to return
+
+    todo_complete:
+      name: todo_complete
+      description: Mark a todo as complete
+      inputSchema:
+        type: object
+        properties:
+          todo_id:
+            type: string
+            format: uuid
+            description: UUID of the todo to complete
+        required:
+          - todo_id
+
+    todo_update:
+      name: todo_update
+      description: Update a todo's title or description
+      inputSchema:
+        type: object
+        properties:
+          todo_id:
+            type: string
+            format: uuid
+            description: UUID of the todo to update
+          title:
+            type: string
+            minLength: 1
+            maxLength: 500
+            description: New title (optional)
+          description:
+            type: string
+            maxLength: 2000
+            description: New description (optional)
+        required:
+          - todo_id
+
+    todo_delete:
+      name: todo_delete
+      description: Delete a todo permanently
+      inputSchema:
+        type: object
+        properties:
+          todo_id:
+            type: string
+            format: uuid
+            description: UUID of the todo to delete
+        required:
+          - todo_id

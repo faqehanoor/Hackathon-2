@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env*
+!.env.example
+
+# Coverage
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Node.js (if any frontend exists)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+.dockerignore
+Dockerfile*
+
+# Backend specific
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+
+# Frontend specific (if exists)
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/node_modules/
+
+# Helm charts
+helm-charts/*/charts/
+helm-charts/*/.helmignore
+helm-charts/*/tmp/
+
+# Minikube/Kubernetes
+.minikube/
+.kube/
+
+# Docker related
+.docker/
+*.tar
+*.tar.gz
