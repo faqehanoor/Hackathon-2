@@ -29,6 +29,10 @@ backend:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
+  secret:
+    # These should be overridden in production
+    secretKey: "Y2hhbmdlLW1lLXRvLWEtcHJvZHVjdGlvbi1zZWNyZXQ="  # Base64 for "change-me-to-a-production-secret"
+    databaseUrl: "cG9zdGdyZXNxbDovL2xvY2FsaG9zdDo1NDMyL3RvZG9hcHA="  # Base64 for "postgresql://localhost:5432/todoapp"
 
 service:
   type: ClusterIP
@@ -45,17 +49,50 @@ ingress:
           pathType: ImplementationSpecific
   tls: []
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+# Define resource limits and requests for better resource management
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Security context for pods
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+
+# PostgreSQL Configuration
+postgresql:
+  enabled: true
+  database: todoapp
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  secret:
+    username: "cG9zdGdyZXM="  # Base64 encoded: postgres
+    password: "cGFzc3dvcmQ="  # Base64 encoded: password
+  persistence:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    storageClass: ""
+
+# Security context for containers
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+    - ALL
 
 autoscaling:
   enabled: false

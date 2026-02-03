@@ -1,0 +1,96 @@
+# Production values for Todo App Helm Chart
+# This file demonstrates proper configuration for a production environment
+
+frontend:
+  replicaCount: 3
+  image:
+    repository: todo-frontend
+    pullPolicy: Always
+    tag: "v1.0.0"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+backend:
+  replicaCount: 3
+  image:
+    repository: todo-backend
+    pullPolicy: Always
+    tag: "v1.0.0"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  secret:
+    # These should be replaced with actual base64-encoded production secrets
+    secretKey: "CHANGE-ME-TO-A-STRONG-PRODUCTION-SECRET-IN-BASE64"
+    databaseUrl: "CHANGE-ME-TO-YOUR-PRODUCTION-DATABASE-URL-IN-BASE64"
+
+service:
+  type: ClusterIP
+  frontendPort: 3000
+  backendPort: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: todo-app.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: todo-app-tls
+      hosts:
+        - todo-app.example.com
+
+# Resource limits for production
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# PostgreSQL Configuration for Production
+postgresql:
+  enabled: true
+  database: todoapp
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  secret:
+    username: "cG9zdGdyZXM="  # Base64 encoded: postgres
+    password: "cGFzc3dvcmQ="  # Base64 encoded: password
+  persistence:
+    enabled: true
+    size: 5Gi  # Larger storage for production
+    accessMode: ReadWriteOnce
+    storageClass: ""  # Will use default storage class
+
+# Security context for production
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+    - ALL
+    add:
+    - NET_BIND_SERVICE

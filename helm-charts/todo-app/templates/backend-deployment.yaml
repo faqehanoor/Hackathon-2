@@ -51,12 +51,22 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
             - name: DATABASE_URL
-              value: "postgresql://localhost:5432/todoapp"
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ include "todo-app.fullname" . }}-postgresql-svc:5432/{{ .Values.postgresql.database }}"
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "todo-app.fullname" . }}-backend-secret
                   key: secret-key
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "todo-app.fullname" . }}-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "todo-app.fullname" . }}-db-secret
+                  key: password
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

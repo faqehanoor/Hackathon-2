@@ -13,6 +13,5 @@ data:
     }
   BACKEND_CONFIG: |
     {
-      "databaseUrl": "postgresql://localhost:5432/todoapp",
       "environment": "{{ .Release.Environment }}"
     }
